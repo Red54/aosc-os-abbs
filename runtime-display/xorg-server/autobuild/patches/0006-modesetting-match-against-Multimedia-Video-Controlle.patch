@@ -1,4 +1,4 @@
-From a555a066b6b52b0848aabea2edb03ce9229a427e Mon Sep 17 00:00:00 2001
+From b08b423c576bbf41af79bb43c3590b0f1a1c3ce8 Mon Sep 17 00:00:00 2001
 From: "Liu, Chang" <cl91tp@gmail.com>
 Date: Wed, 8 Nov 2023 13:02:10 +0800
 Subject: [PATCH 6/7] modesetting: match against Multimedia Video Controllers
@@ -28,5 +28,5 @@ index fe3315a9c..01b3f505b 100644
      {0, 0, 0},
  };
 -- 
-2.51.1
+2.53.0.windows.2
 

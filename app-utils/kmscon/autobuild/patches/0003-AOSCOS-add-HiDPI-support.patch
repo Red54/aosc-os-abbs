@@ -1,0 +1,155 @@
+From 12b7e78681802a70a9d1a51b199ba410348f49d9 Mon Sep 17 00:00:00 2001
+From: CyberNeko-AI <cyberneko.ai@aosc.io>
+Date: Wed, 1 Apr 2026 15:26:17 +0800
+Subject: [PATCH 3/3] AOSCOS: add HiDPI support
+
+[AI Co-authoring Disclosure]
+
+The C logic for automatic HiDPI font scaling was co-authored with AI
+assistance.
+
+[Platform/Model]
+
+Google Gemini 3.1 Pro
+
+[Prompts]
+
+  "How to add a HiDPI detection logic in `kmscon`'s `add_display` hook
+  that automatically calculate dpi based on the display's physical
+  dimensions and resolution, and use that info to trigger integer
+  scaling for bitmap fonts like Unifont?"
+
+Signed-off-by: CyberNeko-AI <cyberneko.ai@aosc.io>
+---
+ src/kmscon_terminal.c      | 28 +++++++++++++++++++++++++++-
+ src/uterm_drm_shared.c     |  3 +++
+ src/uterm_video.c          | 12 ++++++++++++
+ src/uterm_video.h          |  3 +++
+ src/uterm_video_internal.h |  3 +++
+ 5 files changed, 48 insertions(+), 1 deletion(-)
+
+diff --git a/src/kmscon_terminal.c b/src/kmscon_terminal.c
+index 08e6534..beddd15 100644
+--- a/src/kmscon_terminal.c
++++ b/src/kmscon_terminal.c
+@@ -94,6 +94,8 @@ struct kmscon_terminal {
+ 	struct kmscon_font_attr font_attr;
+ 	struct kmscon_font *font;
+ 
++	unsigned int font_scale;
++
+ 	struct kmscon_pointer pointer;
+ };
+ 
+@@ -408,7 +410,7 @@ static int add_display(struct kmscon_terminal *term, struct uterm_display *disp)
+ 	const char *be;
+ 	bool opengl;
+ 	const char *rot_str;
+-	
++
+ 	shl_dlist_for_each(iter, &term->screens)
+ 	{
+ 		scr = shl_dlist_entry(iter, struct screen, list);
+@@ -425,6 +427,28 @@ static int add_display(struct kmscon_terminal *term, struct uterm_display *disp)
+ 	scr->term = term;
+ 	scr->disp = disp;
+ 
++	unsigned int sw = uterm_display_get_width(disp);
++    unsigned int sh = uterm_display_get_height(disp);
++    unsigned int mm_w = uterm_display_get_mm_width(disp);
++    unsigned int mm_h = uterm_display_get_mm_height(disp);
++    
++if (mm_w > 0 && mm_h > 0) {
++		unsigned int ppi_x = (sw * 254) / (mm_w * 10);
++		unsigned int ppi_y = (sh * 254) / (mm_h * 10);
++		unsigned int ppi = (ppi_x + ppi_y) / 2;
++
++		unsigned int scale = (ppi + 48) / 96;
++		if (scale < 1) scale = 1;
++		
++		if (scale > term->font_scale) {
++			log_info("HiDPI display detected (%ux%u, PPI: %u). Scaling font to %ux.", sw, sh, ppi, scale);
++
++			term->font_attr.points = (term->font_attr.points / term->font_scale) * scale;
++			font_set(term);
++			term->font_scale = scale;
++		}
++	}
++
+ 	ret = uterm_display_register_cb(scr->disp, display_event, scr);
+ 	if (ret) {
+ 		log_error("cannot register display callback: %d", ret);
+@@ -938,6 +962,8 @@ int kmscon_terminal_register(struct kmscon_session **out, struct kmscon_seat *se
+ 	term->font_attr.ppi = term->conf->font_ppi;
+ 	term->font_attr.points = term->conf->font_size;
+ 
++	term->font_scale = 1;
++
+ 	ret = tsm_screen_new(&term->console, log_llog, NULL);
+ 	if (ret)
+ 		goto err_free;
+diff --git a/src/uterm_drm_shared.c b/src/uterm_drm_shared.c
+index a0b28f0..d1c0b69 100644
+--- a/src/uterm_drm_shared.c
++++ b/src/uterm_drm_shared.c
+@@ -1178,6 +1178,9 @@ static void bind_display(struct uterm_video *video, drmModeRes *res, drmModeConn
+ 	if (ret)
+ 		return;
+ 
++	disp->mm_width = conn->mmWidth;
++	disp->mm_height = conn->mmHeight;
++
+ 	disp->default_orientation = get_drm_panel_orientation(vdrm->fd, conn);
+ 	ddrm = disp->data;
+ 	init_modes(disp, conn);
+diff --git a/src/uterm_video.c b/src/uterm_video.c
+index dab308e..f0ea3d1 100644
+--- a/src/uterm_video.c
++++ b/src/uterm_video.c
+@@ -578,3 +578,15 @@ void uterm_video_poll(struct uterm_video *video)
+ 
+ 	VIDEO_CALL(video->mod->ops.poll, 0, video);
+ }
++
++SHL_EXPORT
++unsigned int uterm_display_get_mm_width(struct uterm_display *disp)
++{
++    return disp ? disp->mm_width : 0;
++}
++
++SHL_EXPORT
++unsigned int uterm_display_get_mm_height(struct uterm_display *disp)
++{
++    return disp ? disp->mm_height : 0;
++}
+diff --git a/src/uterm_video.h b/src/uterm_video.h
+index b9d8665..f6cc74c 100644
+--- a/src/uterm_video.h
++++ b/src/uterm_video.h
+@@ -196,6 +196,9 @@ int uterm_video_wake_up(struct uterm_video *video);
+ bool uterm_video_is_awake(struct uterm_video *video);
+ void uterm_video_poll(struct uterm_video *video);
+ 
++unsigned int uterm_display_get_mm_width(struct uterm_display *disp);
++unsigned int uterm_display_get_mm_height(struct uterm_display *disp);
++
+ #ifdef BUILD_ENABLE_VIDEO_DRM2D
+ extern struct uterm_video_module drm2d_module;
+ 
+diff --git a/src/uterm_video_internal.h b/src/uterm_video_internal.h
+index 8cb6ee8..b012f1f 100644
+--- a/src/uterm_video_internal.h
++++ b/src/uterm_video_internal.h
+@@ -94,6 +94,9 @@ struct uterm_display {
+ 	unsigned int height;
+ 	unsigned int default_orientation;
+ 	
++	unsigned int mm_width;
++    unsigned int mm_height;
++
+ 	struct uterm_video *video;
+ 
+ 	struct shl_hook *hook;
+-- 
+2.52.0
+

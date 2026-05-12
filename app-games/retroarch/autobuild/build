@@ -1,0 +1,45 @@
+case "$ARCH" in
+	amd64) OPT="--enable-sse" ;;
+	armel) OPT="--enable-neon" ;;
+	arm64) OPT="--disable-neon" ;;
+	*) OPT="" ;;
+esac
+
+abinfo 'Running configure ...'
+./configure --prefix=/usr \
+            --enable-al \
+            --enable-dylib \
+            --enable-sdl2 \
+            --enable-materialui $OPT \
+            --enable-xvideo \
+            --enable-v4l2 \
+            --enable-freetype \
+            --enable-pulse \
+            --enable-xmb \
+            --with-assets_dir=/usr/share/libretro/assets \
+            --with-core_info_dir=/usr/share/libretro/info \
+            --with-filters_dir=/usr/lib/retroarch/filters
+
+abinfo 'Building main components ...'
+make
+make DESTDIR="$PKGDIR" install
+
+abinfo 'Building filters ...'
+make -C "$SRCDIR"/libretro-common/audio/dsp_filters
+make -C "$SRCDIR"/gfx/video_filters
+
+abinfo 'Installing filters ...'
+make -C "$SRCDIR"/libretro-common/audio/dsp_filters DESTDIR="$PKGDIR" install
+make -C "$SRCDIR"/gfx/video_filters DESTDIR="$PKGDIR" install
+
+abinfo 'Installing assets ...'
+make -C "$SRCDIR"/../retroarch-assets DESTDIR="$PKGDIR" install
+
+abinfo 'Installing core info ...'
+make -C "$SRCDIR"/../libretro-core-info DESTDIR="$PKGDIR" install
+
+abinfo 'Installing joypad autoconfig ...'
+make -C "$SRCDIR"/../retroarch-joypad-autoconfig DESTDIR="$PKGDIR" install
+
+abinfo 'Installing database ...'
+make -C "$SRCDIR"/../libretro-database DESTDIR="$PKGDIR" install

@@ -1,0 +1,4 @@
+PKGNAME=dislocker
+PKGSEC=utils
+PKGDES="FUSE driver to read/write Windows' BitLocker-ed volumes"
+PKGDEP="fuse-3 mbedtls ruby"

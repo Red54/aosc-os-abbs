@@ -1,0 +1,86 @@
+From 1094e1edb4cf1dd9aa59acb59d304e2699f596ab Mon Sep 17 00:00:00 2001
+From: Rong Bao <webmaster@csmantle.top>
+Date: Wed, 22 Jul 2026 15:48:53 +0800
+Subject: [PATCH 15/15] =?UTF-8?q?Bug=20=3F=3F=3F=20-=20Part=202:=20Try=20g?=
+ =?UTF-8?q?etting=20symbols=20via=20Services.profiler=20first=20on=20suppo?=
+ =?UTF-8?q?rted=20platforms.=20r=3D=3F=3F=3F?=
+
+---
+ .../performance-new/symbolication.sys.mjs     | 41 +++++++++++++++++--
+ 1 file changed, 37 insertions(+), 4 deletions(-)
+
+diff --git a/devtools/shared/performance-new/symbolication.sys.mjs b/devtools/shared/performance-new/symbolication.sys.mjs
+index 256f988d22e2f632b61869784fd5914d42e8074b..816ca4d3c902479952b2bbc076b93dc1d991c7ad 100644
+--- a/devtools/shared/performance-new/symbolication.sys.mjs
++++ b/devtools/shared/performance-new/symbolication.sys.mjs
+@@ -22,6 +22,7 @@ const lazy = {};
+ ChromeUtils.defineESModuleGetters(
+   lazy,
+   {
++    AppConstants: "resource://gre/modules/AppConstants.sys.mjs",
+     clearTimeout: "resource://gre/modules/Timer.sys.mjs",
+     setTimeout: "resource://gre/modules/Timer.sys.mjs",
+   },
+@@ -32,10 +33,11 @@ ChromeUtils.defineESModuleGetters(
+ const global = globalThis;
+ 
+ // This module obtains symbol tables for binaries.
+-// It does so with the help of a WASM module which gets pulled in from the
+-// internet on demand. We're doing this purely for the purposes of saving on
+-// code size. The contents of the WASM module are expected to be static, they
+-// are checked against the hash specified below.
++// When the profiler's native ELF parser is available, it is tried first.
++// Other builds and native failures use a WASM module which gets pulled in
++// from the internet on demand. We're doing this purely for the purposes of
++// saving on code size. The contents of the WASM module are expected to be
++// static, they are checked against the hash specified below.
+ // The WASM code is run on a ChromeWorker thread. It takes the raw byte
+ // contents of the to-be-dumped binary (and of an additional optional pdb file
+ // on Windows) as its input, and returns a set of typed arrays which make up
+@@ -211,12 +213,43 @@ class LocalSymbolicationService {
+     this._objdirs = objdirs;
+   }
+ 
++  /**
++   * @param {string} debugName
++   * @param {string} breakpadId
++   * @returns {Promise<SymbolTableAsTuple | null>}
++   */
++  async #getSymbolTableFromNative(debugName, breakpadId) {
++    if (!lazy.AppConstants.MOZ_GECKO_PROFILER_PARSE_ELF) {
++      return null;
++    }
++
++    const key = `${debugName}:${breakpadId}`;
++    const lib = this._libInfoMap.get(key);
++    if (!lib) {
++      return null;
++    }
++
++    try {
++      return await Services.profiler.getSymbolTable(lib.debugPath, breakpadId);
++    } catch {
++      return null;
++    }
++  }
++
+   /**
+    * @param {string} debugName
+    * @param {string} breakpadId
+    * @returns {Promise<SymbolTableAsTuple>}
+    */
+   async getSymbolTable(debugName, breakpadId) {
++    const nativeSymbolTable = await this.#getSymbolTableFromNative(
++      debugName,
++      breakpadId
++    );
++    if (nativeSymbolTable) {
++      return nativeSymbolTable;
++    }
++
+     const module = await getWASMProfilerGetSymbolsModule();
+     /** @type {SymbolicationWorkerInitialMessage} */
+     const initialMessage = {
+-- 
+2.55.0
+

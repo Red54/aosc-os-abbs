@@ -1,0 +1,40 @@
+From 40af5f8abc0e56999d6018599623c01e31180c35 Mon Sep 17 00:00:00 2001
+From: Rong Bao <webmaster@csmantle.top>
+Date: Wed, 22 Jul 2026 21:44:26 +0800
+Subject: [PATCH 14/15] =?UTF-8?q?Bug=20=3F=3F=3F=20-=20Part=201:=20Export?=
+ =?UTF-8?q?=20native=20ELF=20parsing=20capability=20via=20MOZ=5FGECKO=5FPR?=
+ =?UTF-8?q?OFILER=5FPARSE=5FELF.=20r=3D=3F=3F=3F?=
+
+---
+ toolkit/modules/AppConstants.sys.mjs | 2 ++
+ toolkit/modules/moz.build            | 1 +
+ 2 files changed, 3 insertions(+)
+
+diff --git a/toolkit/modules/AppConstants.sys.mjs b/toolkit/modules/AppConstants.sys.mjs
+index a26725ead2f74aaf6a7550e9251662c5202e1d16..be3996246a333a18ee640ee8f935e172aa95f348 100644
+--- a/toolkit/modules/AppConstants.sys.mjs
++++ b/toolkit/modules/AppConstants.sys.mjs
+@@ -123,6 +123,8 @@ export var AppConstants = Object.freeze({
+ 
+   MOZ_CRASHREPORTER: @MOZ_CRASHREPORTER_BOOL@,
+ 
++  MOZ_GECKO_PROFILER_PARSE_ELF: @MOZ_GECKO_PROFILER_PARSE_ELF_BOOL@,
++
+   MOZ_NORMANDY: @MOZ_NORMANDY_BOOL@,
+ 
+   MOZ_MAINTENANCE_SERVICE: @MOZ_MAINTENANCE_SERVICE_BOOL@,
+diff --git a/toolkit/modules/moz.build b/toolkit/modules/moz.build
+index 50d537ee499a0ae935082fd26c8a822ac4b06d36..e08111d73ee5f8c79e12c62cf9f833664f9f4778 100644
+--- a/toolkit/modules/moz.build
++++ b/toolkit/modules/moz.build
+@@ -327,6 +327,7 @@ for var in (
+     "MOZ_WEBRTC",
+     "MOZ_WMF_CDM",
+     "MOZ_CRASHREPORTER",
++    "MOZ_GECKO_PROFILER_PARSE_ELF",
+     "MOZ_NORMANDY",
+     "MOZ_MAINTENANCE_SERVICE",
+     "MOZ_BACKGROUNDTASKS",
+-- 
+2.55.0
+

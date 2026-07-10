@@ -1,4 +1,4 @@
-VER=0.4.0
+VER=0.7.0
 
 SRCS="git::commit=tags/v$VER::https://gitlab.com/surfer-project/surfer"
 CHKSUMS="SKIP"

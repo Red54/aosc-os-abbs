@@ -1,0 +1,2 @@
+# FIXME: Use lld to workaround aws-lc-rs discovery issue.
+export RUSTFLAGS="${RUSTFLAGS} -Clink-arg=-fuse-ld=lld"

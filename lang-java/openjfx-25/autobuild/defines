@@ -1,0 +1,8 @@
+PKGNAME=openjfx-25
+PKGSEC=java
+PKGDEP="openjfx-common cairo mesa gtk-3 x11-lib openjdk-25"
+BUILDDEP="cmake gperf perl ruby unzip"
+PKGDES="Open source implementation of JavaFX (version 25)"
+
+# FIXME: Thousands of undefined reference error when enabled
+NOLTO=1

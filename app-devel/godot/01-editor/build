@@ -1,5 +1,6 @@
 abinfo "Building Godot Engine ..."
 
+has_dotnet=yes
 if ab_match_arch amd64; then
     GODOT_ARCH=x86_64
 elif ab_match_arch arm64; then
@@ -12,8 +13,14 @@ elif ab_match_arch loongarch64; then
     GODOT_ARCH=loongarch64
 elif ab_match_arch loongarch64_nosimd; then
     GODOT_ARCH=loongarch64
+elif ab_match_arch i486; then
+    GODOT_ARCH=x86_32
+	# Note: require lock free uint64_t atomic
+	#   static_assert(std::atomic<uint64_t>::is_always_lock_free)
+	CFLAGS="${CFLAGS/-march=i486/-march=i586}"
+	has_dotnet=no
 else
-    aberr "Unsupported architecture."
+    abdie "Unsupported architecture."
 fi
 
 abinfo "Use custom build name \"aosc\" ..."
@@ -27,62 +34,80 @@ ARGV=(
     production=yes
     debug_symbols=yes
     arch="$GODOT_ARCH"
-    module_mono_enabled=yes
+    module_mono_enabled="$has_dotnet"
 
     progress=no
     debug_paths_relative=yes
+	ccflags="$CFLAGS"
+	linkflags="$LDFLAGS"
 
     engine_update_check=no
 
     builtin_certs=no
     system_certs_path=/etc/ssl/ca-bundle.crt
 
-    # use system libraries
-    # commented libraries are using bundled version due to not in our repo unless specified otherwise
-    builtin_brotli=no
-    # clipper2
-    # embree, godot use patched version, system version crashed when occlusion culling active
-    builtin_enet=no
-    builtin_freetype=no
-    # msdfgen
-    # glslang, need specific version
-    builtin_graphite=no
-    # harfbuzz, issue with extension
-    builtin_sdl=no
-    # icu4c, issue with extension
-    builtin_libjpeg_turbo=no
-    builtin_libogg=no
-    builtin_libpng=no
-    builtin_libtheora=no
-    builtin_libwebp=no
-    # wslay
-    builtin_mbedtls=no
-    builtin_miniupnpc=no
-    # openxr
-    builtin_pcre2=no
-    # recastnavigation
-    # rvo2_2d
-    # rvo2_3d
-    # xatlas
-    builtin_zlib=no
-    builtin_zstd=no
     use_static_cpp=no
-)
-scons ${ARGV[*]}
 
-EXE_NAME="godot.linuxbsd.editor.$GODOT_ARCH.mono"
-abinfo "Building Godot C# binding ..."
-"$SRCDIR"/bin/"$EXE_NAME" \
-	--headless \
-	--generate-mono-glue "$SRCDIR"/modules/mono/glue
-"$SRCDIR"/modules/mono/build_scripts/build_assemblies.py \
-	--godot-output-dir="$SRCDIR"/bin \
-	--godot-platform=linuxbsd
+	# use system libraries
+	# commented libraries are using bundled version due to not in our repo unless specified otherwise
+	builtin_brotli=no
+	# clipper2
+	# embree, godot use patched version, system version crashed when occlusion culling active
+	# enet, "System-provided ENet has its functionality limited to IPv4 only and no DTLS support, unless patched for Godot."
+	builtin_freetype=no
+	# msdfgen
+	# glslang, need specific version
+	builtin_graphite=no
+	# harfbuzz, issue with extension, https://github.com/godotengine/godot/issues/91401
+	builtin_sdl=no
+	# icu4c, issue with extension, https://github.com/godotengine/godot/issues/100301
+	builtin_libjpeg_turbo=no
+	builtin_libogg=no
+	builtin_libpng=no
+	builtin_libtheora=no
+	builtin_libvorbis=no
+	builtin_libwebp=no
+	# wslay
+	builtin_mbedtls=no
+	builtin_miniupnpc=no
+	# openxr
+	builtin_pcre2=no
+	# recastnavigation
+	# rvo2_2d
+	# rvo2_3d
+	# xatlas
+	builtin_zlib=no
+	builtin_zstd=no
+)
+if ab_match_arch i486; then
+	ARGV+=(
+		# FIXME: /usr/bin/ld: bin/obj/platform/linuxbsd/crash_handler_linuxbsd.linuxbsd.editor.x86_32.o: plugin needed to handle lto object
+		# Note: need disable LTO in both defines and scons parameter
+		lto=none
+	)
+fi
+
+scons "${ARGV[@]}"
+
+EXE_NAME="godot.linuxbsd.editor.$GODOT_ARCH"
+if [[ $has_dotnet == "yes" ]]; then
+	EXE_NAME="$EXE_NAME.mono"
+	abinfo "Building Godot C# binding ..."
+	"$SRCDIR"/bin/"$EXE_NAME" \
+		--headless \
+		--generate-mono-glue "$SRCDIR"/modules/mono/glue
+	"$SRCDIR"/modules/mono/build_scripts/build_assemblies.py \
+		--godot-output-dir="$SRCDIR"/bin \
+		--godot-platform=linuxbsd
+fi
 
 abinfo "Installing Godot..."
 install -dv "$PKGDIR"/usr/lib/godot/
-mv -v "$SRCDIR"/bin/GodotSharp \
-	"$PKGDIR"/usr/lib/godot/
+if [[ $has_dotnet == "yes" ]]; then
+	mv -v "$SRCDIR"/bin/GodotSharp \
+		"$PKGDIR"/usr/lib/godot/
+fi
+
 install -Dvm755 "$SRCDIR"/bin/"$EXE_NAME" "$PKGDIR"/usr/lib/godot/godot
 mkdir -pv "$PKGDIR"/usr/bin/
 ln -sv ../lib/godot/godot "$PKGDIR"/usr/bin/godot

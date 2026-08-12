@@ -1,6 +1,10 @@
-GODOT_ARCH=arm64
+GODOT_ARCH=x86_32
 
 abinfo "Building Godot export template for $GODOT_ARCH ..."
+
+# Note: require lock free uint64_t atomic
+#   static_assert(std::atomic<uint64_t>::is_always_lock_free)
+CFLAGS="${CFLAGS/-march=i486/-march=i586}"
 
 export BUILD_NAME=aosc
 
@@ -10,7 +14,7 @@ ARGV=(
     production=yes
     debug_symbols=yes
     arch="$GODOT_ARCH"
-    module_mono_enabled=yes
+    module_mono_enabled=no
 	ccflags="$CFLAGS"
 	linkflags="$LDFLAGS"
 
@@ -22,7 +26,7 @@ ARGV=(
 )
 scons "${ARGV[@]}"
 
-EXE_NAME="godot.linuxbsd.template_release.$GODOT_ARCH.mono"
+EXE_NAME="godot.linuxbsd.template_release.$GODOT_ARCH"
 
 abinfo "Installing export template for $GODOT_ARCH ..."
 install -dv "$PKGDIR"/usr/lib/godot/templates/

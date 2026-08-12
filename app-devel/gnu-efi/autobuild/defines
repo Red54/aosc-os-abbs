@@ -5,5 +5,7 @@ PKGDES="Libraries for building UEFI applications using the GNU toolchain"
 ABSTRIP=0
 NOPARALLEL=1
 NOSTATIC=0
+# Stack protection leads to missing symbol
+AB_FLAGS_SSP=0
 
 FAIL_ARCH="!(amd64|arm64|armv7hf|riscv64|loongarch64|loongarch64_nosimd)"

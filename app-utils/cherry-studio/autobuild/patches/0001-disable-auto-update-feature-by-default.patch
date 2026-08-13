@@ -1,56 +1,37 @@
-diff --git a/src/main/services/AppUpdater.ts b/src/main/services/AppUpdater.ts
-index ec0f1b97e..f1c0e5345 100644
---- a/src/main/services/AppUpdater.ts
-+++ b/src/main/services/AppUpdater.ts
-@@ -129,6 +129,7 @@ export default class AppUpdater {
-   }
+diff --git a/src/renderer/pages/settings/AboutSettings/AboutSettings.tsx b/src/renderer/pages/settings/AboutSettings/AboutSettings.tsx
+index 638d139..a46e4ae 100644
+--- a/src/renderer/pages/settings/AboutSettings/AboutSettings.tsx
++++ b/src/renderer/pages/settings/AboutSettings/AboutSettings.tsx
+@@ -50,7 +50,6 @@ import { FeedbackDialog } from '../FeedbackDialog'
+ import DiagnosticBundleDialog from './DiagnosticBundleDialog'
  
-   public setAutoUpdate(isActive: boolean) {
-+    isActive = false
-     autoUpdater.autoDownload = isActive
-     // autoInstallOnAppQuit is always false - user must explicitly click "Install Now"
-   }
-diff --git a/src/main/services/ConfigManager.ts b/src/main/services/ConfigManager.ts
-index 3cab0bf91..0ab582aa8 100644
---- a/src/main/services/ConfigManager.ts
-+++ b/src/main/services/ConfigManager.ts
-@@ -141,7 +141,7 @@ export class ConfigManager {
-   }
+ const AboutSettings: FC = () => {
+-  const [autoCheckUpdate, setAutoCheckUpdate] = usePreference('app.dist.auto_update.enabled')
+   const [testPlan, setTestPlan] = usePreference('app.dist.test_plan.enabled')
+   const [testChannel, setTestChannel] = usePreference('app.dist.test_plan.channel')
  
-   getAutoUpdate(): boolean {
--    return this.get<boolean>(ConfigKeys.AutoUpdate, true)
-+    return this.get<boolean>(ConfigKeys.AutoUpdate, false)
-   }
+@@ -281,11 +280,6 @@ const AboutSettings: FC = () => {
  
-   setAutoUpdate(value: boolean) {
-diff --git a/src/renderer/src/pages/settings/AboutSettings.tsx b/src/renderer/src/pages/settings/AboutSettings.tsx
-index dcf95324d..14d0acc55 100644
---- a/src/renderer/src/pages/settings/AboutSettings.tsx
-+++ b/src/renderer/src/pages/settings/AboutSettings.tsx
-@@ -216,26 +216,9 @@ const AboutSettings: FC = () => {
-               </Tag>
-             </VersionWrapper>
-           </Row>
--          {!isPortable && (
--            <CheckUpdateButton
--              onClick={onCheckUpdate}
--              loading={update.checking}
--              disabled={update.downloading || update.checking}>
--              {update.downloading
--                ? t('settings.about.downloading')
--                : update.available
--                  ? t('settings.about.checkUpdate.available')
--                  : t('settings.about.checkUpdate.label')}
--            </CheckUpdateButton>
--          )}
-         </AboutHeader>
          {!isPortable && (
            <>
--            <SettingDivider />
--            <SettingRow>
+-            <Divider className="my-3" />
+-            <SettingRow className="gap-3">
 -              <SettingRowTitle>{t('settings.general.auto_check_update.title')}</SettingRowTitle>
--              <Switch value={autoCheckUpdate} onChange={(v) => setAutoCheckUpdate(v)} />
+-              <Switch checked={autoCheckUpdate} onCheckedChange={(v) => setAutoCheckUpdate(v)} />
 -            </SettingRow>
-             <SettingDivider />
-             <SettingRow>
-               <SettingRowTitle>{t('settings.general.test_plan.title')}</SettingRowTitle>
+ 
+             <Divider className="my-3" />
+             <SettingRow className="flex-nowrap gap-6">
+diff --git a/src/shared/data/preference/preferenceSchemas.ts b/src/shared/data/preference/preferenceSchemas.ts
+index 653d304..c72c425 100644
+--- a/src/shared/data/preference/preferenceSchemas.ts
++++ b/src/shared/data/preference/preferenceSchemas.ts
+@@ -545,7 +545,7 @@ export const DefaultPreferences: PreferenceSchemas = {
+     'agent.session.display_mode': 'agent',
+     'agent.session.position': 'left',
+     'app.developer_mode.enabled': false,
+-    'app.dist.auto_update.enabled': true,
++    'app.dist.auto_update.enabled': false,
+     'app.dist.test_plan.channel': PreferenceTypes.UpgradeChannel.LATEST,
+     'app.dist.test_plan.enabled': false,
+     'app.language': null,

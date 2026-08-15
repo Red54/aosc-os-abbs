@@ -1,4 +1,5 @@
 EPOCH=1
 VER=0+git20260521
+REL=1
 SRCS="git::commit=e44942b445d9376451f7d519965dae036efde5bc;copy-repo=true::https://gn.googlesource.com/gn"
 CHKSUMS="SKIP"

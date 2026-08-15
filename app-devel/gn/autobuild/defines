@@ -5,3 +5,4 @@ BUILDDEP="llvm ninja"
 PKGDES="Meta-build system that generates build files for Ninja"
 
 ABTYPE=self
+FAIL_ARCH="!(mainline|retro)"

@@ -1,0 +1,3 @@
+echo "/etc/ldc2.conf is now a directory, moving aside to /etc/ldc2.conf.bak ..."
+mv -v /etc/ldc2.conf \
+    /etc/ldc2.conf.bak
